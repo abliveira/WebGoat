@@ -24,6 +24,8 @@ package org.owasp.webgoat.lessons.xss;
 
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+
+import org.apache.commons.text.StringEscapeUtils;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AssignmentHints;
 import org.owasp.webgoat.container.assignments.AttackResult;
@@ -72,10 +74,15 @@ public class CrossSiteScriptingLesson5a extends AssignmentEndpoint {
 
     userSessionData.setValue("xss-reflected1-complete", "false");
     StringBuilder cart = new StringBuilder();
+
+    // Assuming field1 and totalSale are user inputs
+    String sanitizedField1 = StringEscapeUtils.escapeHtml4(field1);
+    String sanitizedTotalSale = StringEscapeUtils.escapeHtml4(String.valueOf(totalSale));
+
     cart.append("Thank you for shopping at WebGoat. <br />Your support is appreciated<hr />");
-    cart.append("<p>We have charged credit card:" + field1 + "<br />");
+    cart.append("<p>We have charged credit card:" + sanitizedField1 + "<br />");
     cart.append("                             ------------------- <br />");
-    cart.append("                               $" + totalSale);
+    cart.append("                               $" + sanitizedTotalSale);
 
     // init state
     if (userSessionData.getValue("xss-reflected1-complete") == null) {

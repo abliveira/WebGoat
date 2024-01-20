@@ -57,21 +57,19 @@ public class SqlInjectionLesson5a extends AssignmentEndpoint {
   }
 
   protected AttackResult injectableQuery(String accountName) {
-    String query = "";
-    try (Connection connection = dataSource.getConnection()) {
-      query =
-          "SELECT * FROM user_data WHERE first_name = 'John' and last_name = '" + accountName + "'";
-      try (Statement statement =
-          connection.createStatement(
-              ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-        ResultSet results = statement.executeQuery(query);
+      String query = "SELECT * FROM user_data WHERE first_name = 'John' AND last_name = ?";
 
-        if ((results != null) && (results.first())) {
-          ResultSetMetaData resultsMetaData = results.getMetaData();
-          StringBuilder output = new StringBuilder();
+      try (Connection connection = dataSource.getConnection();
+           PreparedStatement statement = connection.prepareStatement(query)) {
 
-          output.append(writeTable(results, resultsMetaData));
-          results.last();
+          statement.setString(1, accountName);
+
+          try (ResultSet results = statement.executeQuery()) {
+              if ((results != null) && (results.first())) {
+                  ResultSetMetaData resultsMetaData = results.getMetaData();
+                  StringBuilder output = new StringBuilder();
+                  output.append(writeTable(results, resultsMetaData));
+                  results.last();
 
           // If they get back more than one user they succeeded
           if (results.getRow() >= 6) {

@@ -58,15 +58,17 @@ public class SqlInjectionLesson5b extends AssignmentEndpoint {
     return injectableQuery(login_count, userid);
   }
 
-  protected AttackResult injectableQuery(String login_count, String accountName) {
-    String queryString = "SELECT * From user_data WHERE Login_Count = ? and userid= " + accountName;
-    try (Connection connection = dataSource.getConnection()) {
-      PreparedStatement query =
-          connection.prepareStatement(
-              queryString, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+   protected AttackResult injectableQuery(String login_count, String accountName) {
+        String queryString = "SELECT * From user_data WHERE Login_Count = ? and userid= ?" + accountName;
+        try (Connection connection = dataSource.getConnection();
 
-      int count = 0;
-      try {
+             PreparedStatement query =
+                     connection.prepareStatement(
+                             queryString, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+             PreparedStatement statement = connection.prepareStatement(queryString)) {
+            statement.setString(1, accountName);
+            int count = 0;
+            try {
         count = Integer.parseInt(login_count);
       } catch (Exception e) {
         return failed(this)

@@ -23,13 +23,11 @@
 package org.owasp.webgoat.lessons.jwt;
 
 import static java.util.Comparator.comparingLong;
+import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.impl.TextCodec;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
@@ -120,7 +118,11 @@ public class JWTVotesEndpoint extends AssignmentEndpoint {
   public void login(@RequestParam("user") String user, HttpServletResponse response) {
     if (validUsers.contains(user)) {
       Claims claims = Jwts.claims().setIssuedAt(Date.from(Instant.now().plus(Duration.ofDays(10))));
-      claims.put("admin", "false");
+      if (user.toLowerCase().contains("jerry")){
+          claims.put("admin", "true");
+      } else {
+          claims.put("admin", "false");
+      }
       claims.put("user", user);
       String token =
           Jwts.builder()
@@ -177,7 +179,7 @@ public class JWTVotesEndpoint extends AssignmentEndpoint {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     } else {
       try {
-        Jwt jwt = Jwts.parser().setSigningKey(JWT_PASSWORD).parse(accessToken);
+        Jwt jwt = Jwts.parser().setSigningKey(JWT_PASSWORD).parseClaimsJwt(accessToken);
         Claims claims = (Claims) jwt.getBody();
         String user = (String) claims.get("user");
         if (!validUsers.contains(user)) {
@@ -186,8 +188,12 @@ public class JWTVotesEndpoint extends AssignmentEndpoint {
           ofNullable(votes.get(title)).ifPresent(v -> v.incrementNumberOfVotes(totalVotes));
           return ResponseEntity.accepted().build();
         }
+      } catch (SignatureException sigE) {
+          return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                  .body("Invalid signature in the JWT. Please check the access token.");
       } catch (JwtException e) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+          return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                  .body("Invalid JWT. Please check the access token.");
       }
     }
   }
@@ -200,7 +206,7 @@ public class JWTVotesEndpoint extends AssignmentEndpoint {
       return failed(this).feedback("jwt-invalid-token").build();
     } else {
       try {
-        Jwt jwt = Jwts.parser().setSigningKey(JWT_PASSWORD).parse(accessToken);
+        Jwt jwt = Jwts.parser().setSigningKey(JWT_PASSWORD).parseClaimsJwt(accessToken);
         Claims claims = (Claims) jwt.getBody();
         boolean isAdmin = Boolean.valueOf(String.valueOf(claims.get("admin")));
         if (!isAdmin) {
@@ -209,6 +215,8 @@ public class JWTVotesEndpoint extends AssignmentEndpoint {
           votes.values().forEach(vote -> vote.reset());
           return success(this).build();
         }
+      } catch (SignatureException sigE) {
+          return failed(this).feedback("invalid-signature").output(sigE.toString()).build();
       } catch (JwtException e) {
         return failed(this).feedback("jwt-invalid-token").output(e.toString()).build();
       }

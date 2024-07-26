@@ -39,7 +39,7 @@ public class VulnerableComponentsLesson extends AssignmentEndpoint {
   @PostMapping("/VulnerableComponents/attack1")
   public @ResponseBody AttackResult completed(@RequestParam String payload) {
     XStream xstream = new XStream();
-    xstream.setClassLoader(Contact.class.getClassLoader());
+    XStream.setuDDefaultSecurity(xstream);
     xstream.alias("contact", ContactImpl.class);
     xstream.ignoreUnknownElements();
     Contact contact = null;
